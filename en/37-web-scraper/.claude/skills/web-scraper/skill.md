@@ -58,11 +58,26 @@ Tasks 2a (crawler) and 2b (parser) run **in parallel** since both depend only on
 - data-mgr completes > passes data quality metrics to monitor
 - monitor integrates all components to finalize operations configuration
 
-### Phase 3: Integration and Final Deliverables
+**Real-file rule**: Executable code must be saved as real files (`.py`) in `_workspace/src/` — never left only as code blocks or pseudocode inside `.md` documents. The verification gate (Phase 3) runs against the real files in this directory.
+
+### Phase 3: Verification Gate (executed directly by the orchestrator in the main context — do NOT delegate to subagents)
+
+Once all agents have completed their work, integrate the deliverables and actually run the verify command to confirm it passes:
 
 1. Verify all files in `_workspace/` and `_workspace/src/`
 2. Validate cross-deliverable consistency (analysis > crawler > parser > storage > monitoring)
-3. Present the final summary and execution instructions to the user
+3. Run `python3 -m compileall -q _workspace/src` and check the actual output (if the code was produced as Node.js, use `node --check` or `npx tsc --noEmit`)
+4. On failure, fix the errors directly and re-run — repeat until passing
+5. If the same error repeats 3 times, change approach. If the fix requires crawler architecture or data schema design changes, report to the user instead of auto-fixing
+6. If it ultimately cannot pass, record remaining errors in TODO.md and state them in the final report
+7. Never bypass the gate by deleting or commenting out failing files, or by narrowing the check scope
+8. Proceed to Phase 4 only after confirming a pass (0 errors)
+
+In modes that produce no code (e.g., Analysis mode), skip the gate and record "N/A". In code-producing modes, an empty `_workspace/src/` counts as a gate failure, not a skip.
+
+### Phase 4: Final Report
+
+After the verification gate passes, present the final summary and execution instructions to the user.
 
 ## Execution Modes by Request Scope
 
@@ -92,6 +107,7 @@ Tasks 2a (crawler) and 2b (parser) run **in parallel** since both depend only on
 | robots.txt blocks all crawling | Check for public API; propose API-based approach |
 | Anti-bot blocks all requests | Escalate difficulty; propose headless browser or API alternatives |
 | Dynamic rendering failure | Switch to Playwright; increase timeouts |
+| Syntax/import errors | Orchestrator runs `python3 -m compileall -q _workspace/src` directly → analyze errors → fix → re-verify (Phase 3 gate) |
 | Agent failure | Retry once; if still failing, proceed without that deliverable |
 
 ## Test Scenarios
