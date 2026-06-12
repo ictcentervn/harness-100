@@ -56,7 +56,20 @@ Tasks 2a (frontend), 2b (backend), and 2c (DevOps) run **in parallel**. All depe
 - devops completes → shares environment variables and deployment URLs with all
 - qa reviews all code and tests. On 🔴 required fix: requests fix from the relevant developer → rework → re-verify (max 2 rounds)
 
-### Phase 3: Integration and Final Deliverables
+**Scaffold rule**: When generating a new app's package.json, always include a `"verify": "tsc --noEmit"` script (with Prisma: `"verify": "prisma generate && tsc --noEmit"`). The compile gate (global Stop hook) opts in based on the presence of this script.
+
+### Phase 3: Verification Gate (executed directly by the orchestrator in the main context — do NOT delegate to subagents)
+
+Independent of QA's document review, actually run the commands and confirm they pass:
+
+1. In the app directory, run `npm run verify` (or `npx tsc --noEmit` if absent) and check the actual output
+2. On failure, fix the errors directly and re-run — repeat until passing
+3. If the same error repeats 3 times, change approach. If the fix requires schema/API or other design changes, report to the user instead of auto-fixing
+4. If it ultimately cannot pass, record remaining errors in TODO.md and state them in the final report
+5. Never bypass the gate by adding `@ts-ignore`, casting to any, or loosening tsconfig
+6. Proceed to Phase 4 only after confirming a pass (0 errors)
+
+### Phase 4: Integration and Final Deliverables
 
 Organize final deliverables based on the QA review:
 
@@ -99,7 +112,7 @@ Adjust the agents deployed based on the scope of the user's request:
 |-----------|----------|
 | Ambiguous requirements | Apply the most common CRUD pattern, document assumptions |
 | Unspecified tech stack | Apply default stack by scale (MVP: Next.js + SQLite) |
-| Build errors | Analyze error logs → relevant developer fixes → QA re-verifies |
+| Build/type errors | Orchestrator runs `npm run verify` directly → analyze errors → fix → re-verify (Phase 3 gate) |
 | Agent failure | Retry once → proceed without that deliverable if failed, note in review |
 | 🔴 found in review | Request fix from relevant developer → rework → re-verify (max 2 rounds) |
 
