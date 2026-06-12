@@ -54,7 +54,21 @@ Tasks 3a (scripts) and 3b (validation) run **in parallel**.
 - validation-engineer completes > passes rollback trigger conditions to rollback-planner
 - rollback-planner develops the overall plan and feeds back risk items to each agent
 
-### Phase 3: Integration and Final Deliverables
+**Scaffold rule**: Executable code must always be saved as real files (`.py`) in `_workspace/03_migration_scripts/` — never delivered only as code blocks embedded in `.md` documents. script-developer states the verification command (`python3 -m py_compile *.py`) in `_workspace/03_migration_scripts/README.md`. The verification gate (Phase 3) determines apply/skip by the presence of this directory.
+
+### Phase 3: Verification Gate (executed directly by the orchestrator in the main context — do NOT delegate to subagents)
+
+Independent of each agent's deliverable document review, actually run the command and confirm it passes:
+
+1. Check that the `_workspace/03_migration_scripts/` directory exists. If absent (analysis/mapping/validation/rollback-only or other no-code modes), skip the gate and record "gate not applicable (no-code mode)" in the final report
+2. If present, run `python3 -m py_compile _workspace/03_migration_scripts/*.py` and check the actual output — this is syntax-level verification that works without DBs or third-party packages. Actually executing the ETL requires the user's source/target DBs and is outside the gate's scope
+3. On failure, fix the errors directly and re-run — repeat until passing
+4. If the same error repeats 3 times, change approach. If the fix requires schema mapping/transformation rule or other design changes, report to the user instead of auto-fixing
+5. If it ultimately cannot pass, record remaining errors in TODO.md and state them in the final report
+6. Never bypass the gate by deleting failing files, commenting out code, or reverting real files back to document code blocks
+7. Proceed to Phase 4 only after confirming a pass (0 errors) or a legitimate skip
+
+### Phase 4: Integration and Final Deliverables
 
 1. Verify all deliverables in `_workspace/`
 2. Validate cross-deliverable consistency (mapping vs. scripts, validation vs. mapping, rollback vs. scripts)
@@ -89,6 +103,7 @@ Tasks 3a (scripts) and 3b (validation) run **in parallel**.
 | Target schema undecided | Auto-generate recommended target schema based on source |
 | Incompatible types | Propose two-stage conversion via intermediate type |
 | Very large tables (>100M rows) | Partition-level migration strategy |
+| Script syntax errors | Orchestrator runs `python3 -m py_compile` directly → analyze errors → fix → re-verify (Phase 3 gate) |
 | Agent failure | Retry once; if still failing, proceed without that deliverable |
 
 ## Test Scenarios
