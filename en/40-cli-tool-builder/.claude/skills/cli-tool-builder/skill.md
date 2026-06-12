@@ -56,12 +56,33 @@ Tasks 3a (testing) and 3b (documentation) run **in parallel**.
 - docs completes > passes README path to release
 - release integrates all deliverables to complete the deployment pipeline
 
-### Phase 3: Integration and Final Deliverables
+**Real-file save / scaffold rules**:
+- developer and tester must save executable code as real files in `_workspace/src/` (tests in `_workspace/src/tests/`) — never finish a deliverable with code embedded in `.md` documents only
+- For Node.js output, when generating package.json always include a `"verify": "tsc --noEmit"` script (`node --check`-based for plain JS) — the compile gate (global Stop hook) opts in based on the presence of this script. For Python/Go/Rust, the Phase 3 verification gate covers verification
 
-1. Verify that the code in `_workspace/src/` is executable
-2. Verify that tests pass
-3. Validate consistency between documentation and code
-4. Report the final summary to the user
+### Phase 3: Verification Gate (executed directly by the orchestrator in the main context — do NOT delegate to subagents)
+
+Independent of the tester's test writing, actually run the commands and confirm they pass. Per-language verify commands:
+
+| Language | verify command | Run from |
+|----------|---------------|----------|
+| Python (default) | `python -m compileall _workspace/src && python -m pytest _workspace/src/tests` | Project root |
+| Node.js | `npm run verify` (`npx tsc --noEmit` for TypeScript) | `_workspace/src/` |
+| Go | `go vet ./... && go test ./...` | `_workspace/src/` |
+| Rust | `cargo check && cargo test` | `_workspace/src/` |
+
+1. Run the verify command for the output language from the table above and check the actual output
+2. On failure, fix the errors directly and re-run — repeat until passing
+3. If the same error repeats 3 times, change approach. If the fix requires changes to the command structure, interfaces, or other design decisions, report to the user instead of auto-fixing
+4. If it ultimately cannot pass, record remaining errors in TODO.md and state them in the final report — never mark a failing result as passing
+5. Never bypass the gate by deleting or skipping tests, adding `# type: ignore`/`@ts-ignore`, or loosening lint configuration
+6. In modes that produce no code (design mode, deploy mode, etc.), skip the gate and record "N/A". However, in code-producing modes an empty `_workspace/src/` counts as a failure, not a skip
+7. Proceed to Phase 4 only after confirming a pass (0 errors)
+
+### Phase 4: Integration and Final Deliverables
+
+1. Validate consistency between documentation and code
+2. Report the final summary to the user (including the Phase 3 gate results)
 
 ## Execution Modes by Request Scope
 
@@ -87,9 +108,10 @@ Tasks 3a (testing) and 3b (documentation) run **in parallel**.
 |-----------|----------|
 | Tool purpose unclear | Research similar CLI tools via WebSearch, propose 3 candidates |
 | Language not specified | Default to Python (typer), state reasoning and alternatives |
-| Test failure | Send bug report to developer, retest after fix (up to 2 rounds) |
+| Build/type (syntax) errors | Orchestrator runs the per-language verify command directly > analyze errors > fix > re-verify (Phase 3 gate) |
+| Test failure | Send bug report to developer, retest after fix (up to 2 rounds) > if unresolved, treat as a Phase 3 gate failure and record in TODO.md (never mark as passing) |
 | Cross-platform build failure | Switch affected OS build to CI-only, present local build alternatives |
-| Agent failure | Retry once > if still failing, proceed without that deliverable |
+| Agent failure | Retry once > if still failing, proceed without that deliverable and state it in the final report (the Phase 3 gate is never skipped) |
 
 ## Test Scenarios
 
