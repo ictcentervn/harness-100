@@ -55,7 +55,22 @@ open source projectof code→documentation→license→community inthisbefore te
 - community completed → reviewerto before configuration before
 - reviewer all   verification. 🔴 required modification   corresponding inthisbeforeto modification request →  → verification (maximum 2)
 
-### Phase 3: integrated and final 
+**Scaffold rule**: Files meant to be placed in the actual project (CI workflows, config files, build manifests, etc.) must be saved as real files under `_workspace/generated_files/` — never delivered only as embeds inside the .md deliverables. When composing a build manifest (package.json, pyproject.toml, etc.), always include test/lint command definitions, and record the build/test commands under the "build command / test command" entries of `01_code_organization.md` — the Phase 3 verification gate executes these commands.
+
+### Phase 3: Verification Gate (executed directly by the orchestrator in the main context — do NOT delegate to subagents)
+
+Independent of the reviewer's document review, actually run the verifiable deliverables and confirm they pass. Verification targets are twofold:
+
+1. **Generated file syntax verification**: Lint the YAML/TOML config files under `_workspace/generated_files/` (e.g. `.github/workflows/*.yml`) with `actionlint` (or `yamllint` if absent) and check the actual output (machine-checkable exit 0/1)
+2. **User codebase verification**: If the user provided a codebase, directly run the build/test commands recorded in `01_code_organization.md` and check the actual output
+3. On failure, fix the errors directly and re-run — repeat until passing
+4. If the same error repeats 3 times, change approach. If the fix requires design changes such as project structure or license policy, report to the user instead of auto-fixing
+5. If a verification tool is unavailable (actionlint/yamllint not installed, etc.) or an item ultimately cannot pass, record it in TODO.md and state it in the final report — never mark it as passing
+6. Never bypass the gate by excluding workflow files from verification or adding lint-ignore comments
+7. **Conditional skip**: In modes that produce no config files or code (documentation/license/review modes), skip the gate and record "N/A" in the final report
+8. Proceed to Phase 4 only after confirming a pass (0 errors)
+
+### Phase 4: integrated and final 
 
 1. `_workspace/` and `_workspace/generated_files/` within all day confirmation
 2. review reportof 🔴 required modificationthis   confirmation
@@ -92,6 +107,7 @@ open source projectof code→documentation→license→community inthisbefore te
 | code provided | day open source project templateand list provided |
 | project language people | for configuration(EditorConfig, gitignore)as in progress, languageper   |
 | license  |  package or license change   |
+| Config file syntax/build errors | Orchestrator runs `actionlint`/`yamllint` and the build/test commands from `01_code_organization.md` directly → analyze errors → fix → re-verify (Phase 3 gate) |
 | inthisbefore failure | 1 retry → failure  corresponding  this in progress, review reportin  people |
 | reviewfrom 🔴  | corresponding inthisbeforein modification request →  → verification (maximum 2) |
 

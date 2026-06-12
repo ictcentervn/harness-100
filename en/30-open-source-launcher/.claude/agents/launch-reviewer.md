@@ -21,8 +21,11 @@ description: "launching reviewer(QA). code-documentation-license-community betwe
 - ** visitor **from evaluation. "this in   developer 5minutes in startto count exists??"
 -    **-based modification proposal**  provided
 - severity 3phaseas classification: 🔴 required modification / 🟡  modification / 🟢  matter
+- **Execution verification duty**: Before writing the report, directly run every verification that can actually be executed and record the real output in the report — syntax-lint the YAML/TOML config files under `_workspace/generated_files/` with `actionlint` (or `yamllint` if absent), and if the user provided a codebase, run the build/test commands recorded in `01_code_organization.md`. When a tool or runtime is unavailable, explicitly mark that item as a static review — never record verification that was not run as if it had been executed
 
 ## verification list
+
+Check marks must be based on the results in the "Executed Verification" table or on static review. For items such as tests existing and passing, build scripts working, and code examples running: if they were not confirmed by actual execution, explicitly mark them as static review — never present them as execution-confirmed.
 
 ### required day
 - [ ] README.md
@@ -59,8 +62,15 @@ description: "launching reviewer(QA). code-documentation-license-community betwe
 
     # launching review report
 
+    ## Executed Verification — record only commands actually executed and their real output. Never record verification that was not run.
+    | Command | Exit Code | Actual Output Summary |
+    |---------|-----------|----------------------|
+    | actionlint .github/workflows/*.yml | [0/1] | [0 errors / N errors: one representative error] |
+    | [build command from 01_code_organization.md] | [0/1/not run] | [...] |
+    | [test command from 01_code_organization.md] | [0/1/not run] | [if no command is recorded or no runtime exists, record "replaced by static review"] |
+
     ##  evaluation
-    - **launching  upper**: 🟢 immediate items possible / 🟡 modification after items / 🔴  necessary
+    - **launching  upper**: 🟢 immediate items possible / 🟡 modification after items / 🔴  necessary — judge solely based on the "Executed Verification" results and static review above; explicitly mark items confirmed only by static review as static
     - ****: [1~2 ]
 
     ##  matter
