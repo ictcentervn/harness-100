@@ -56,7 +56,29 @@ description: "모바일 앱 개발 풀 파이프라인. UI/UX 설계→네이티
 - api-integrator 완료 → app-developer에게 API 클라이언트 코드 전달
 - qa-engineer는 모든 산출물을 교차 검증. 🔴 필수 수정 발견 시 해당 에이전트에게 수정 요청 → 재작업 → 재검증 (최대 2회)
 
-### Phase 3: 통합 및 최종 산출물
+**스캐폴드 규칙**: 실행 가능한 앱 코드는 문서 내 코드블록만으로 끝내지 말고 `_workspace/02_app_code/`에 실파일로 저장한다. React Native(TypeScript)로 스캐폴드할 때는 package.json에 `"verify": "tsc --noEmit"` 스크립트를 반드시 포함한다 — 컴파일 게이트(전역 Stop hook)가 이 스크립트의 존재로 옵트인된다. Flutter는 package.json이 없으므로 검증 명령(`flutter analyze`)을 `02_app_architecture.md`에 기록한다.
+
+### Phase 3: 검증 게이트 (오케스트레이터가 메인 컨텍스트에서 직접 수행 — 서브에이전트 위임 금지)
+
+QA의 교차 검증과 별개로, 명령을 실제로 실행해 통과를 확인한다. 코드 미산출 모드(UX 모드/스토어 모드/리뷰 모드)에서는 게이트를 생략하고 최종 보고에 "해당 없음"으로 기록한다. 단, 코드 산출 모드에서 `_workspace/02_app_code/`가 비어 있으면 미통과로 처리한다 — 파일 부재를 스킵 사유로 삼지 않는다.
+
+검증 명령은 프레임워크 조건부이며, 게이트는 프로젝트 루트가 아닌 `_workspace/02_app_code/`에서 실행한다:
+
+| 프레임워크 | 검증 명령 | 기계 판정 |
+|-----------|----------|----------|
+| Flutter | `cd _workspace/02_app_code && flutter analyze` | 가능 (exit 0/1) |
+| React Native (TypeScript) | `cd _workspace/02_app_code && npm run verify` (없으면 `npx tsc --noEmit`) | 가능 (exit 0/1) |
+| SwiftUI / Jetpack Compose | 경량 검증 수단 없음 — Xcode/Gradle 컴파일은 이 스킬의 범위 밖 | 불가 |
+
+1. `_workspace/02_app_code/`에서 위 표의 검증 명령을 실행하고 실제 출력을 확인한다
+2. 실패 시 에러를 직접 수정하고 재실행한다 — 통과할 때까지 반복
+3. 동일 에러가 3회 반복되면 접근을 바꾼다. 수정이 화면 구조/API/데이터 모델 등 설계 변경을 요구하면 자동 수정하지 말고 사용자에게 보고한다
+4. 끝내 통과하지 못하면 잔여 에러를 TODO.md에 기록하고 최종 보고에 명시한다
+5. SwiftUI/Jetpack Compose처럼 검증 수단 자체가 없는 분기에서는 "기계 검증 불가"를 TODO.md에 기록하고 최종 보고에 명시한다 — 통과로 표기하지 않는다
+6. `// ignore` 주석 추가, `dynamic`/`any` 캐스팅, analysis_options.yaml·tsconfig 완화로 게이트를 우회하지 않는다
+7. 통과(에러 0건) 또는 4·5의 명시적 기록을 확인한 뒤에만 Phase 4로 진행한다
+
+### Phase 4: 통합 및 최종 산출물
 
 QA 보고서를 기반으로 최종 산출물을 정리한다:
 
@@ -98,6 +120,7 @@ QA 보고서를 기반으로 최종 산출물을 정리한다:
 |----------|------|
 | 플랫폼 미지정 | UX 설계자가 크로스플랫폼(Flutter) 기본 선택, 양 플랫폼 가이드라인 반영 |
 | 백엔드 API 없음 | API 연동자가 Mock API 설계, 향후 실제 API로 교체 가능한 구조 |
+| 빌드/타입(분석) 에러 | 오케스트레이터가 프레임워크별 verify(`flutter analyze` / `npx tsc --noEmit`)를 `_workspace/02_app_code/`에서 직접 실행 → 에러 분석 → 수정 → 재검증 (Phase 3 게이트) |
 | 에이전트 실패 | 1회 재시도 → 실패 시 해당 산출물 없이 진행, QA 보고서에 누락 명시 |
 | QA에서 🔴 발견 | 해당 에이전트에 수정 요청 → 재작업 → 재검증 (최대 2회) |
 | 프레임워크 호환성 | 앱 개발자가 대안 프레임워크 제안, 장단점 비교 제공 |

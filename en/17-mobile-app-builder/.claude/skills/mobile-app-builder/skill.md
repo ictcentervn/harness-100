@@ -56,7 +56,29 @@ Tasks 2a (app code) and 2b (store metadata) run **in parallel**.
 - api-integrator completes → delivers API client code to app-developer
 - qa-engineer cross-verifies all deliverables. On 🔴 required fix: requests fix from relevant agent → rework → re-verify (max 2 rounds)
 
-### Phase 3: Integration and Final Deliverables
+**Scaffold rule**: Save runnable app code as real files in `_workspace/02_app_code/` — never finish with code blocks embedded in documents only. When scaffolding with React Native (TypeScript), always include a `"verify": "tsc --noEmit"` script in package.json — the compile gate (global Stop hook) opts in based on the presence of this script. Flutter has no package.json, so record the verification command (`flutter analyze`) in `02_app_architecture.md` instead.
+
+### Phase 3: Verification Gate (executed directly by the orchestrator in the main context — do NOT delegate to subagents)
+
+Independent of QA's cross-verification, actually run the commands and confirm they pass. In modes that produce no code (UX Mode / Store Mode / Review Mode), skip the gate and record "N/A" in the final report. However, in code-producing modes, an empty `_workspace/02_app_code/` counts as a gate failure — file absence is not a reason to skip.
+
+The verification command is framework-conditional, and the gate runs in `_workspace/02_app_code/` rather than the project root:
+
+| Framework | Verification Command | Mechanical Judgment |
+|-----------|---------------------|---------------------|
+| Flutter | `cd _workspace/02_app_code && flutter analyze` | Possible (exit 0/1) |
+| React Native (TypeScript) | `cd _workspace/02_app_code && npm run verify` (or `npx tsc --noEmit` if absent) | Possible (exit 0/1) |
+| SwiftUI / Jetpack Compose | No lightweight verification available — Xcode/Gradle compilation is outside this skill's scope | Not possible |
+
+1. In `_workspace/02_app_code/`, run the verification command from the table above and check the actual output
+2. On failure, fix the errors directly and re-run — repeat until passing
+3. If the same error repeats 3 times, change approach. If the fix requires screen structure/API/data model or other design changes, report to the user instead of auto-fixing
+4. If it ultimately cannot pass, record remaining errors in TODO.md and state them in the final report
+5. For branches with no verification means (SwiftUI/Jetpack Compose), record "mechanical verification not possible" in TODO.md and state it in the final report — never mark it as passed
+6. Never bypass the gate by adding `// ignore` comments, casting to `dynamic`/`any`, or loosening analysis_options.yaml/tsconfig
+7. Proceed to Phase 4 only after confirming a pass (0 errors) or the explicit records from steps 4-5
+
+### Phase 4: Integration and Final Deliverables
 
 Organize final deliverables based on the QA report:
 
@@ -98,6 +120,7 @@ File naming convention: `{order}_{agent}_{deliverable}.{extension}`
 |-----------|----------|
 | Platform unspecified | UX designer defaults to cross-platform (Flutter), reflecting both platform guidelines |
 | No backend API | API integrator designs mock API, structured for easy replacement with real API |
+| Build/type (analysis) errors | Orchestrator directly runs the framework-specific verify (`flutter analyze` / `npx tsc --noEmit`) in `_workspace/02_app_code/` → analyze errors → fix → re-verify (Phase 3 gate) |
 | Agent failure | Retry once → proceed without that deliverable if failed, note in QA report |
 | 🔴 found in QA | Request fix from relevant agent → rework → re-verify (max 2 rounds) |
 | Framework compatibility | App developer suggests alternative framework with pros/cons comparison |
