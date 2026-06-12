@@ -53,7 +53,21 @@ An agent team collaborates to perform the full ML experiment lifecycle: data pre
 - evaluation completes → Sends evaluation report to reviewer
 - reviewer cross-validates all outputs. If 🔴 must-fix issues found, sends correction requests to the relevant agent → rework → re-verify (up to 2 times)
 
-### Phase 3: Integration and Final Outputs
+**Real-file rule**: Executable code (preprocessing, model, training, and evaluation scripts) must be saved as `.py` files in `_workspace/experiment_code/` — never left only as code blocks inside `.md` documents. The verification gate (Phase 3) inspects this directory.
+
+### Phase 3: Verification Gate (executed directly by the orchestrator in the main context — do NOT delegate to subagents)
+
+Independent of the reviewer's document review, actually run the command and confirm it passes:
+
+1. Apply the gate only when `.py` files exist in `_workspace/experiment_code/`. For runs that produce no code (review mode, evaluation mode, etc.), skip the gate and record "Verification gate: N/A (no code produced)" in the final report
+2. Run `python3 -m compileall -q _workspace/experiment_code/` and check the actual output — the gate is limited to syntax-level checking. Training smoke runs are not mandatory (in environments without torch/xgboost/mlflow or without data, they fail regardless of code quality)
+3. On failure, fix the errors directly and re-run — repeat until passing
+4. If the same error repeats 3 times, change approach. If the fix requires data schema/model architecture or other design changes, report to the user instead of auto-fixing
+5. If it ultimately cannot pass, record remaining errors in TODO.md and state them in the final report
+6. Never bypass the gate by deleting the offending files or moving code back into `.md` documents
+7. Proceed to Phase 4 only after confirming a pass (0 errors) or "N/A"
+
+### Phase 4: Integration and Final Outputs
 
 1. Check all files in `_workspace/`
 2. Verify that all 🔴 must-fix items from the review report have been addressed
@@ -95,6 +109,7 @@ File naming convention: `{order}_{agent}_{output}.{extension}`
 | No GPU | CPU-optimized settings + prioritize lightweight models |
 | Problem type unclear | Infer from data characteristics + request user confirmation |
 | Training divergence | Suggest LR reduction, Gradient Clipping, batch size adjustment |
+| Code syntax/import errors | Orchestrator runs `python3 -m compileall -q _workspace/experiment_code/` directly → analyze errors → fix → re-verify (Phase 3 gate) |
 | Agent failure | 1 retry → proceed without that output if failed, note omission in review report |
 | 🔴 found in review | Send correction request to relevant agent → rework → re-verify (up to 2 times) |
 
