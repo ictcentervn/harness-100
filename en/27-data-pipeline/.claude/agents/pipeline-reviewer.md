@@ -21,6 +21,7 @@ description: "pipeline reviewer(QA). ETL-plan-scheduling-monitoring betweenof   
 - **production operations **from evaluation. " 3in  lower to count exists??"
 -    **-based modification proposal**  provided
 - severity 3phaseas classification: 🔴 required modification / 🟡  modification / 🟢  matter
+- **Execution verification duty**: Before writing the review report, if `pipeline_code/` contains .py files, directly run `find pipeline_code -name '*.py' -exec python3 -m py_compile {} +` and record the actual output in the report. Execute and record only commands that can actually run; clearly mark static reviews (such as document cross-verification) as static. Never pass code based on reading documents alone
 
 ## verification list
 
@@ -52,8 +53,15 @@ description: "pipeline reviewer(QA). ETL-plan-scheduling-monitoring betweenof   
 
     # pipeline review report
 
+    ## Executed Verification — Record only commands actually executed and their real output. Never record verification that was not run as if it were executed.
+    | Verification Item | Kind | Exit Code | Actual Output Summary |
+    |-------------------|------|-----------|----------------------|
+    | find pipeline_code -name '*.py' -exec python3 -m py_compile {} + | executed | [0/1/skip] | [0 errors / N errors: one representative error / no pipeline_code/ — skip] |
+    | Document cross-verification (01~04 deliverables) | static review | N/A | [state explicitly that this is a static review, not an executed command] |
+    | dbt SQL | excluded | N/A | [excluded from mechanical verification — no dbt project] |
+
     ##  evaluation
-    - **operations  upper**: 🟢 immediate deployment possible / 🟡 modification after deployment / 🔴  necessary
+    - **operations  upper**: 🟢 immediate deployment possible / 🟡 modification after deployment / 🔴  necessary — judge code solely on the "Executed Verification" results above, and document consistency solely on the consistency matrix (static review)
     - ****: [1~2 ]
 
     ##  matter
@@ -90,3 +98,8 @@ description: "pipeline reviewer(QA). ETL-plan-scheduling-monitoring betweenof   
 - **itemsper teamto**: corresponding teamof in  -based modification request SendMessageas before
 - 🔴 required modification  : corresponding teamto immediate modification requestlower, modification result verification (maximum 2)
 - all verification completed : final review report creation
+
+## Error Handling
+
+- When `pipeline_code/` code is incomplete or py_compile finds syntax errors: report as verification failure (🔴) and return it to the relevant agent — do not write only the report and treat it as passing
+- Never run verification that requires an execution environment (source/target DB connections, Airflow runs, dbt run, etc.) — mark it as "design deliverable — no execution environment" and never record unexecuted verification as executed

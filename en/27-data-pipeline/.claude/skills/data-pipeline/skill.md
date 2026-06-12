@@ -56,7 +56,21 @@ team setupand  .  between of  and :
 - scheduler completed → monitoringto DAG execution metric before
 - reviewer all   verification. 🔴 required modification   corresponding inthisbeforeto modification request →  → verification (maximum 2)
 
-### Phase 3: integrated and final 
+**Real-file save rule**: Code-producing agents (etl-architect, scheduler-engineer, data-quality-manager) save executable Python code (Airflow DAGs, validation scripts, etc.) as real .py files under `pipeline_code/`, in addition to embedding it in their .md deliverables. Never finish a deliverable with code blocks inside documents only. (dbt SQL is excluded from mechanical verification — no dbt project is available.)
+
+### Phase 3: Verification Gate (executed directly by the orchestrator in the main context — do NOT delegate to subagents)
+
+Independent of the reviewer's document cross-verification, actually run the command and confirm it passes:
+
+1. If `pipeline_code/` contains .py files, run `find pipeline_code -name '*.py' -exec python3 -m py_compile {} +` and check the actual output (dbt SQL is excluded from mechanical verification — no dbt project)
+2. In modes that produce no code (monitoring mode, review mode, etc.), if no code files exist, record the gate as "not applicable" and skip it. However, in code-producing modes an empty `pipeline_code/` counts as a failure (missing files are not a reason to skip)
+3. On failure, fix the errors directly and re-run — repeat until passing
+4. If the same error repeats 3 times, change approach. If the fix requires schema/DAG-structure or other design changes, report to the user instead of auto-fixing
+5. If it ultimately cannot pass, record remaining errors in TODO.md and state them in the final report
+6. Never bypass the gate by removing failing files from `pipeline_code/` or keeping the code only as .md embeds
+7. Proceed to Phase 4 only after confirming a pass (0 errors, or "not applicable" confirmed)
+
+### Phase 4: integrated and final 
 
 reviewerof report as final  :
 
@@ -101,6 +115,7 @@ daypeople : `{}_{inthisbefore}_{}.{extension}`
 |   information  | key placeholder  templateas in progress, in " information " people |
 |  stack people | AWS/GCP/Azure 3 per  , user optional also |
 |  information  | (day 1onlycases)·(day 100onlycases)·(day 1cases) 3phase architecture  |
+| Code syntax errors | Orchestrator runs `python3 -m py_compile` directly → analyze errors → fix → re-verify (Phase 3 gate) |
 | inthisbefore failure | 1 retry → failure  corresponding  this in progress, review reportin  people |
 | reviewfrom 🔴  | corresponding inthisbeforein modification request →  → verification (maximum 2) |
 
