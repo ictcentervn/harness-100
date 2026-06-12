@@ -32,8 +32,9 @@ An agent team collaborates to perform analysis -> refactoring strategy -> migrat
     - **Existing Documentation** (optional): Architecture documents, analysis reports, etc.
 2. Create `_workspace/` directory at the project root
 3. Organize input and save to `_workspace/00_input.md`
-4. If existing files are available, copy them to `_workspace/` and skip the corresponding Phase
-5. Determine **execution mode** based on the scope of the request (see "Modes by Task Scale" below)
+4. If the target codebase is accessible, **detect its existing build/test commands** and record them in `_workspace/00_input.md` (detect from `package.json` scripts, `Makefile`, `pom.xml`, `build.gradle`, CI configuration, etc. — the Phase 3 verification gate uses these commands). If detection is not possible, record "verification command not detected"
+5. If existing files are available, copy them to `_workspace/` and skip the corresponding Phase
+6. Determine **execution mode** based on the scope of the request (see "Modes by Task Scale" below)
 
 ### Phase 2: Team Assembly and Execution
 
@@ -52,7 +53,21 @@ An agent team collaborates to perform analysis -> refactoring strategy -> migrat
 - tester completes -> requests fixes from engineer if regressions are found
 - reviewer cross-validates all deliverables. When RED Must Fix items are found, requests fixes from the relevant agent -> rework -> re-verification (up to 2 times)
 
-### Phase 3: Integration and Final Deliverables
+**Real-file output rule**: In Migration Mode, the engineer must not finish with transformed code existing only as code blocks in `_workspace/03_migration_plan.md` — apply the changes to the target project's actual files. If the target codebase is not writable, save the transformed code as real files under `_workspace/migrated_src/` and specify the intended target paths — the Phase 3 verification gate needs real artifacts to check.
+
+### Phase 3: Verification Gate (Performed directly by Orchestrator in the main context — do NOT delegate to subagents)
+
+Independent of the tester's regression test report, actually run the commands and confirm they pass. This gate applies **only when actual code changes occurred** (e.g., Migration Mode). Document-only runs (Analysis/Strategy Mode, etc.) skip the gate and record "verification gate not applicable (document-only)" in the final report.
+
+1. Run the target project's build/test commands recorded in `_workspace/00_input.md` during Phase 1 against the modified code and check the actual output
+2. On failure, fix the errors directly and re-run — repeat until passing
+3. If the same error repeats 3 times, change approach. If the fix requires design changes such as the migration strategy or target architecture, report to the user instead of auto-fixing
+4. If it ultimately cannot pass, record remaining errors in TODO.md and state them in the final report
+5. If no verification command was detected or no execution environment exists, never mark it as passing — record it in TODO.md, and when substituting with static analysis, never mark the overall verdict GREEN (YELLOW Conditional + note "Dynamic verification not possible")
+6. Never bypass the gate by deleting or commenting out failing tests, narrowing the verification command, or loosening the build configuration
+7. Proceed to Phase 4 only after confirming a pass
+
+### Phase 4: Integration and Final Deliverables
 
 1. Check all files in `_workspace/`
 2. Verify that all RED Must Fix items from the review report have been addressed
@@ -85,7 +100,8 @@ File naming convention: `{order}_{agent}_{deliverable}.{extension}`
 | Error Type | Strategy |
 |-----------|----------|
 | Code inaccessible | Inference-based analysis from user-provided information, note "Limited Access" in report |
-| No test environment | Substitute with static analysis and code review-based verification |
+| No test environment | Substitute with static analysis and code review-based verification — but never mark the overall verdict GREEN (YELLOW Conditional + note "Dynamic verification not possible") |
+| Build/test errors | Orchestrator directly runs the build/test commands recorded in `00_input.md` -> analyze errors -> fix -> re-verify (Phase 3 gate) |
 | Agent failure | Retry once -> if fails, proceed without that deliverable, note omission in review |
 | RED found in review | Request fix from relevant agent -> rework -> re-verify (up to 2 times) |
 | Circular dependency unresolvable | Insert Anti-Corruption Layer to isolate, then resolve incrementally |

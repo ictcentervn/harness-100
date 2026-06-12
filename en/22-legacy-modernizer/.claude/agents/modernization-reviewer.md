@@ -38,6 +38,7 @@ You are the final quality verification expert for legacy modernization projects.
 - [ ] Are there corresponding test cases for all transformation items?
 - [ ] Were performance comparisons conducted under fair conditions?
 - [ ] Are discovered regressions reported with remediation suggestions?
+- [ ] Do pass verdicts in the test report include execution evidence (commands run and actual output)? — Pass verdicts without evidence are treated as RED
 
 ### Overall Quality
 - [ ] Is business continuity guaranteed (minimal downtime)?
