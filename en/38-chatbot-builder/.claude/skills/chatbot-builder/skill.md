@@ -56,7 +56,20 @@ Tasks 3a (NLU) and 3b (integration) run **in parallel**.
 - integrator completes > passes test environment info to tester
 - tester cross-validates all deliverables. On CRITICAL findings, requests corrections from the relevant agent > rework > re-verification (up to 2 rounds)
 
-### Phase 3: Integration and Final Deliverables
+**Scaffold rule**: Executable code must be saved as real files in `_workspace/src/` — never finish with code blocks embedded in documents only. When creating `src/`, always include a verify entry point matching the stack: for a Node scaffold, a `"verify": "tsc --noEmit"` script in package.json; for Python, a `verify.sh` (`python -m py_compile` + `pytest`); for any other stack, an equivalent `verify.sh`. The verification gate (Phase 3) executes this entry point.
+
+### Phase 3: Verification Gate (executed directly by the orchestrator in the main context — do NOT delegate to subagents)
+
+Independent of the tester's document review, actually run the commands and confirm they pass. This gate applies only when code has been generated in `_workspace/src/` — in code-free modes such as design mode or test mode, skip the gate and record "N/A" in the final report.
+
+1. In the `_workspace/src/` directory, run the verify entry point included in the scaffold and check the actual output (Node: `npm run verify` ≒ `npx tsc --noEmit` / Python: `verify.sh` = `python -m py_compile` + `pytest`)
+2. On failure, fix the errors directly and re-run — repeat until passing
+3. If the same error repeats 3 times, change approach. If the fix requires changes to the conversation design/NLU interface or other design decisions, report to the user instead of auto-fixing
+4. If it ultimately cannot pass, record remaining errors in TODO.md and state them in the final report
+5. Never bypass the gate by adding error-suppression comments, loosening type-check settings, or weakening the verify entry point
+6. Proceed to Phase 4 only after confirming a pass (0 errors)
+
+### Phase 4: Integration and Final Deliverables
 
 Finalize deliverables based on the tester's report:
 
@@ -91,6 +104,7 @@ Finalize deliverables based on the tester's report:
 | Insufficient domain knowledge | Request additional FAQ list/business information from user, supplement with web search |
 | Channel API changes | Verify latest API documentation via WebFetch, then update integration code |
 | NLU accuracy below threshold | Augment training data > redesign prompts > strengthen fallback, in that order |
+| Build/type/syntax errors | Orchestrator runs the verify entry point in `_workspace/src/` directly > analyze errors > fix > re-verify (Phase 3 gate) |
 | Agent failure | Retry once > if still failing, proceed without that deliverable and note in report |
 
 ## Test Scenarios
