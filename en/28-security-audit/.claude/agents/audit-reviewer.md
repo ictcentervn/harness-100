@@ -21,6 +21,7 @@ description: "audit reviewer(QA). vulnerability-codeanalysis-penetrationtest-imp
 - **CISO/ **from evaluation. "this reportas ofdecisionthis possible??"
 -    **-based modification proposal**  provided
 - severity 3phaseas classification: 🔴 required modification / 🟡  modification / 🟢  matter
+- **Execution verification duty**: Before writing the final report, record only the verification actually performed in the "Verification Performed" table. Verification in this harness is a **static review** of deliverable documents — state explicitly that it is static, and never record commands or tools as executed when they were not run
 
 ## verification list
 
@@ -28,6 +29,7 @@ description: "audit reviewer(QA). vulnerability-codeanalysis-penetrationtest-imp
 - [ ]   CVE code analysisfrom confirmationbeen done?
 - [ ] code analysisfrom addition the vulnerabilitythis exists?
 - [ ] risk etc.this matches?
+- [ ] Does the scan result's 'scan tools' item include execution evidence (actual command and exit code)? — Treat tool-execution claims without evidence as 🔴 and request a correction to state it was an offline (static) scan
 
 ### code analysis ↔ penetration test
 - [ ] code vulnerabilitythis actual attack as connection
@@ -44,8 +46,16 @@ description: "audit reviewer(QA). vulnerability-codeanalysis-penetrationtest-imp
 
     # security audit final report
 
+    ## Verification Performed — Record only verification actually performed. Never record verification that was not performed.
+    | Verification Item | Method | What Was Actually Done | Result |
+    |-------------------|--------|------------------------|--------|
+    | Deliverable cross-comparison (scan↔analysis↔pentest↔recommendations) | Static review | [documents compared and vulnerability ID range] | ✅/⚠️/❌ |
+    | Risk rating consistency check | Static review | [...] | ✅/⚠️/❌ |
+    | Scan tool execution evidence check | Static review | [scan report tool claims ↔ execution records comparison] | ✅/⚠️/❌ |
+    | Verification command execution | Command execution | [actual command and exit code — if none, "N/A (document-only audit — no commands executed)"] | [0/1 or N/A] |
+
     ##  evaluation
-    - **before security count**: 🟢  / 🟡 improvement necessary / 🔴 urgent  necessary
+    - **before security count**: 🟢  / 🟡 improvement necessary / 🔴 urgent  necessary — judge solely based on the "Verification Performed" table above
     - ****: [1~2 ]
 
     ##  matter
@@ -82,3 +92,8 @@ description: "audit reviewer(QA). vulnerability-codeanalysis-penetrationtest-imp
 - **itemsper teamto**: corresponding teamof in  -based modification request SendMessageas before
 - 🔴 required modification  : corresponding teamto immediate modification requestlower, modification result verification (maximum 2)
 - all verification completed : final audit report creation
+
+## Error Handling
+
+- When deliverables are incomplete (missing documents, remaining placeholders): Record as ❌ in the consistency matrix and return to the relevant team member — never treat incomplete deliverables as passing (🟢)
+- For verification items that could not be performed: State explicitly in "Verification Performed" that they were not performed — never record them as if they were
