@@ -56,12 +56,26 @@ Tasks 1a (prompt) and 1b (RAG) run **in parallel**.
 - optimizer completes > passes cache/routing config to deploy
 - deploy integrates all components to complete the production deployment configuration
 
-### Phase 3: Integration and Final Deliverables
+**Real-file save rule**: Save executable code as real files in `_workspace/src/`. Never finish a deliverable with only code blocks or pseudocode embedded in documents — the verification gate (Phase 3) needs real files to check.
 
-1. Verify that the code in `_workspace/src/` is executable
-2. Confirm that evaluation metrics meet the standards
-3. Validate that deployment configuration is complete
-4. Report the final summary to the user:
+### Phase 3: Verification Gate (executed directly by the orchestrator in the main context — do NOT delegate to subagents)
+
+Independent of the agents' document deliverables, actually run the commands and confirm they pass:
+
+1. Run `python3 -m compileall -q _workspace/src` and check the actual output (no dependency installation required — syntax check only). If `src/` contains a package.json, switch to `npm install && npx tsc --noEmit` (TypeScript) or `node --check` (JavaScript). Dockerfile/YAML files are outside the gate's scope
+2. On failure, fix the errors directly and re-run — repeat until passing
+3. If the same error repeats 3 times, change approach. If the fix requires prompt/RAG pipeline or other design changes, report to the user instead of auto-fixing
+4. If it ultimately cannot pass, record remaining errors in TODO.md and state them in the final report
+5. Never bypass the gate by deleting failing files from `src/` or moving code back into document code blocks
+6. Proceed to Phase 4 only after confirming a pass (0 errors)
+
+**Skip condition**: Document-only runs such as prompt mode skip the gate. In code-producing modes (full/RAG/eval/optimization/deploy), an empty `_workspace/src/` counts as a failure — missing files are not a reason to skip. If code is actually produced in `src/`, the gate applies regardless of mode.
+
+### Phase 4: Integration and Final Deliverables
+
+1. Confirm that evaluation metrics meet the standards
+2. Validate that deployment configuration is complete
+3. Report the final summary to the user:
     - Prompt design — `01_prompt_design.md`
     - RAG pipeline — `02_rag_pipeline.md`
     - Evaluation framework — `03_eval_framework.md`
@@ -100,6 +114,7 @@ Tasks 1a (prompt) and 1b (RAG) run **in parallel**.
 | No RAG data source | Build as a pure LLM app without RAG, provide guide for adding RAG later |
 | No evaluation dataset | Generate synthetic data with LLM, provide manual verification guide |
 | Projected budget overrun | Suggest small model routing, enhanced caching, request limits |
+| Build/syntax errors | Orchestrator runs `python3 -m compileall -q _workspace/src` directly > analyze errors > fix > re-verify (Phase 3 gate) |
 | Agent failure | Retry once > if still failing, proceed without that deliverable |
 
 ## Test Scenarios
