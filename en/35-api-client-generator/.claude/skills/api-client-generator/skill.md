@@ -54,11 +54,37 @@ Tasks 4a (tests) and 4b (docs) run **in parallel**.
 - sdk-developer completes > passes public API list to test-engineer, usage examples to doc-writer
 - test-engineer/doc-writer > requests fixes from sdk-developer if code/doc inconsistencies are found
 
-### Phase 3: Integration and Final Deliverables
+**Scaffold rule**: When sdk-developer generates `_workspace/03_client/package.json`, it must include a `"verify": "tsc --noEmit"` script (`"verify": "tsc --noEmit && vitest run"` when tests are produced). For non-TypeScript languages, record the language's standard verification command in the README or manifest under `03_client/`. Executable code must be saved as real files under `02_types/`, `03_client/`, and `04_tests/` — never only as code blocks or pseudocode embedded in documents.
+
+### Phase 3: Verification Gate (performed directly by the orchestrator in the main context — never delegated to subagents)
+
+Independently of the test engineer's deliverables, actually execute the commands and confirm they pass:
+
+1. Determine the gate scope based on the execution mode:
+   - **Analysis mode / Doc mode**: No code produced — gate not applicable (record "N/A")
+   - **Type mode**: Run type compilation only (against `02_types/`)
+   - **Code mode / Full pipeline / Test mode**: Run the full verify from the table below
+2. Run the per-language verify command in `_workspace/03_client/` (`02_types/` in type mode) and check the actual output:
+
+   | Target Language | verify command |
+   |----------------|---------------|
+   | TypeScript (default) | `npm run verify` (or `npx tsc --noEmit` if absent) + `npx vitest run` |
+   | Python | `mypy .` + `pytest` |
+   | Go | `go build ./... && go test ./...` |
+   | Other languages | Run the language's standard compiler/test runner and report the result |
+
+3. On failure, fix the errors directly and rerun — repeat until it passes
+4. If the same error repeats 3 times, change the approach. If a fix requires design changes (spec interpretation, type structure, etc.), do not auto-fix — report to the user
+5. If the gate ultimately cannot pass, record the remaining errors in TODO.md and state them in the final report
+6. Never bypass the gate by adding `@ts-ignore`, casting to any, loosening compiler settings, or disabling tests
+7. In code-producing modes, an empty code directory counts as a failure, not a gate skip
+8. Proceed to Phase 4 only after confirming the gate passes (0 errors)
+
+### Phase 4: Integration and Final Deliverables
 
 1. Verify all files in `_workspace/`
 2. Final consistency check across code, types, tests, and documentation
-3. Report the final summary along with build/test execution commands
+3. Report the final summary along with the Phase 3 gate results
 
 ## Execution Modes by Request Scope
 
@@ -86,6 +112,7 @@ Tasks 4a (tests) and 4b (docs) run **in parallel**.
 | Incomplete spec | Supplement with type inference; mark as "inferred" |
 | Circular references | Auto-apply lazy reference pattern |
 | Non-standard authentication | Provide custom interceptor extension points |
+| Build/type errors | Orchestrator runs the per-language verify directly → analyze errors → fix → re-verify (Phase 3 gate) |
 | Agent failure | Retry once; if still failing, proceed without that deliverable |
 | Code-doc inconsistency | doc-writer/test-engineer requests fix from sdk-developer (up to 2 rounds) |
 
