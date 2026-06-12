@@ -56,7 +56,24 @@ Tasks 3a (Storybook) and 3b (accessibility) run **in parallel**.
 - a11y-auditor completes > passes accessibility guide to doc-writer
 - doc-writer performs final consistency verification across all deliverables
 
-### Phase 3: Integration and Final Deliverables
+**Scaffold rule**: At the start of Phase 2, always create a package.json + tsconfig.json scaffold in the `_workspace/` root:
+- package.json: include a `"verify": "tsc --noEmit"` script (`"verify": "vue-tsc --noEmit"` if Vue was chosen) and framework-appropriate devDependencies such as react/@types/react/typescript/@storybook. The compile gate (global Stop hook) opts in based on the presence of this script
+- tsconfig.json: include `include` and `paths` mappings covering all of `01_design_tokens/`, `02_components/`, and `03_storybook/` (stories must be able to import tokens and components)
+- All agents save executable code as real files (.ts/.tsx) in those directories — never only embedded in .md bodies
+
+### Phase 3: Verification Gate (executed directly by the orchestrator in the main context — do NOT delegate to subagents)
+
+Independent of the a11y-auditor's accessibility review, actually run the commands and confirm they pass:
+
+1. In the `_workspace/` root, run `npm run verify` (= `npx tsc --noEmit`; `vue-tsc --noEmit` if Vue was chosen) and check the actual output. Run `npm install` first if dependencies are not installed
+2. On failure, fix the errors directly and re-run — repeat until passing
+3. If the same error repeats 3 times, change approach. If the fix requires token structure/component props or other design changes, report to the user instead of auto-fixing
+4. If it ultimately cannot pass, record remaining errors in TODO.md and state them in the final report
+5. Never bypass the gate by adding `@ts-ignore`, casting to any, or loosening tsconfig
+6. In modes that produce no code (verification mode or doc mode run alone), record the gate as "N/A" and move on. However, in code-producing modes, if `01_design_tokens/` through `03_storybook/` contain no .ts/.tsx files, treat the gate as failed — not skipped
+7. Proceed to Phase 4 only after confirming a pass (0 errors)
+
+### Phase 4: Integration and Final Deliverables
 
 1. Verify all files in `_workspace/`
 2. Confirm all accessibility P0 issues are resolved
@@ -94,6 +111,7 @@ Tasks 3a (Storybook) and 3b (accessibility) run **in parallel**.
 |-----------|----------|
 | Brand color not provided | Start with neutral palette (slate); request colors from user |
 | Framework unspecified | Default to React + TypeScript; change after user confirmation |
+| Build/type errors | Orchestrator runs `npm run verify` directly → analyze errors → fix → re-verify (Phase 3 gate) |
 | Contrast ratio not met | Auto-adjust and report both original and adjusted values |
 | Accessibility P0 unresolved | Block release; request re-fix from component-developer |
 | Agent failure | Retry once; if still failing, proceed without that deliverable |

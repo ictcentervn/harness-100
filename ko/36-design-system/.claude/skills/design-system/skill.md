@@ -56,7 +56,24 @@ description: "UI 디자인 시스템을 체계적으로 구축하는 풀 파이�
 - a11y-auditor 완료 → doc-writer에게 접근성 가이드 전달
 - doc-writer는 모든 산출물의 정합성을 최종 검증
 
-### Phase 3: 통합 및 최종 산출물
+**스캐폴드 규칙**: Phase 2 시작 시 `_workspace/` 루트에 package.json + tsconfig.json 스캐폴드를 반드시 생성한다:
+- package.json: `"verify": "tsc --noEmit"` 스크립트(Vue 선택 시 `"verify": "vue-tsc --noEmit"`)와 react/@types/react/typescript/@storybook 등 프레임워크에 맞는 devDependencies 포함. 컴파일 게이트(전역 Stop hook)가 이 스크립트의 존재로 옵트인된다
+- tsconfig.json: `01_design_tokens/`·`02_components/`·`03_storybook/`을 모두 커버하는 include와 paths 매핑 포함 (스토리가 토큰·컴포넌트를 임포트할 수 있어야 함)
+- 모든 에이전트는 실행 가능 코드를 .md 본문에 임베드하는 데 그치지 말고 위 디렉토리에 실파일(.ts/.tsx)로 저장한다
+
+### Phase 3: 검증 게이트 (오케스트레이터가 메인 컨텍스트에서 직접 수행 — 서브에이전트 위임 금지)
+
+a11y-auditor의 접근성 검토와 별개로, 명령을 실제로 실행해 통과를 확인한다:
+
+1. `_workspace/` 루트에서 `npm run verify`(= `npx tsc --noEmit`, Vue 선택 시 `vue-tsc --noEmit`)를 실행하고 실제 출력을 확인한다. 의존성 미설치 시 `npm install`을 먼저 실행한다
+2. 실패 시 에러를 직접 수정하고 재실행한다 — 통과할 때까지 반복
+3. 동일 에러가 3회 반복되면 접근을 바꾼다. 수정이 토큰 구조/컴포넌트 props 등 설계 변경을 요구하면 자동 수정하지 말고 사용자에게 보고한다
+4. 끝내 통과하지 못하면 잔여 에러를 TODO.md에 기록하고 최종 보고에 명시한다
+5. `@ts-ignore` 추가, any 캐스팅, tsconfig 완화로 게이트를 우회하지 않는다
+6. 코드 미산출 모드(검증 모드·문서 모드 단독 실행)에서는 게이트를 "해당 없음"으로 기록하고 넘어간다. 단, 코드 산출 모드에서 `01_design_tokens/`~`03_storybook/`에 .ts/.tsx 실파일이 없으면 스킵이 아니라 미통과로 처리한다
+7. 통과(에러 0건)를 확인한 뒤에만 Phase 4로 진행한다
+
+### Phase 4: 통합 및 최종 산출물
 
 1. `_workspace/` 내 모든 파일을 확인한다
 2. 접근성 P0 이슈가 모두 해결되었는지 확인한다
@@ -94,6 +111,7 @@ description: "UI 디자인 시스템을 체계적으로 구축하는 풀 파이�
 |----------|------|
 | 브랜드 색상 미제공 | 중립 팔레트(slate)로 시작, 사용자에게 색상 요청 |
 | 프레임워크 미지정 | React + TypeScript 기본, 사용자 확인 후 변경 |
+| 빌드/타입 에러 | 오케스트레이터가 `npm run verify` 직접 실행 → 에러 분석 → 수정 → 재검증 (Phase 3 게이트) |
 | 대비비 미충족 | 자동 조정 후 원본/조정값 함께 보고 |
 | 접근성 P0 미해결 | 릴리스 차단, component-developer에 재수정 요청 |
 | 에이전트 실패 | 1회 재시도 후 해당 산출물 없이 진행 |
