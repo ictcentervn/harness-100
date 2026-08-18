@@ -56,7 +56,7 @@ Tasks 2a (frontend), 2b (backend), and 2c (DevOps) run **in parallel**. All depe
 - devops completes → shares environment variables and deployment URLs with all
 - qa reviews all code and tests. On 🔴 required fix: requests fix from the relevant developer → rework → re-verify (max 2 rounds)
 
-**Scaffold rule**: When generating a new app's package.json, always include a `"verify": "tsc --noEmit"` script (with Prisma: `"verify": "prisma generate && tsc --noEmit"`). The compile gate (global Stop hook) opts in based on the presence of this script.
+**Scaffold rule**: When generating a new app's package.json, always include a `"verify": "tsc --noEmit"` script. The compile gate (global Stop hook) opts in based on the presence of this script. For multi-step verify (e.g. Prisma), use a `"verify": "bash scripts/verify.sh"` wrapper that swallows a preceding step's output on success and replays it verbatim on failure — success-path noise that varies per run breaks the hook's error delivery and same-error fingerprinting (see eduport/siks scripts/verify.sh).
 
 ### Phase 3: Verification Gate (executed directly by the orchestrator in the main context — do NOT delegate to subagents)
 

@@ -56,7 +56,7 @@ description: "풀스택 웹앱의 요구사항 분석, 설계, 프론트엔드, 
 - devops 완료 → 전체에게 환경변수, 배포 URL 공유
 - qa는 모든 코드를 리뷰하고 테스트. 🔴 필수 수정 발견 시 해당 개발자에게 수정 요청 → 재작업 → 재검증 (최대 2회)
 
-**스캐폴드 규칙**: 새 앱의 package.json을 생성할 때 `"verify": "tsc --noEmit"` 스크립트를 반드시 포함한다 (Prisma 사용 시 `"verify": "prisma generate && tsc --noEmit"`). 컴파일 게이트(전역 Stop hook)가 이 스크립트의 존재로 옵트인된다.
+**스캐폴드 규칙**: 새 앱의 package.json을 생성할 때 `"verify": "tsc --noEmit"` 스크립트를 반드시 포함한다. 컴파일 게이트(전역 Stop hook)가 이 스크립트의 존재로 옵트인된다. Prisma 등 다단계 verify는 `"verify": "bash scripts/verify.sh"` 래퍼로 구성한다 — 선행 단계가 성공하면 그 출력을 삼키고 실패 시에만 원문을 내보낸다(성공 시에도 나오는 가변 노이즈가 훅의 에러 전달과 동일-에러 fingerprint를 깨뜨리기 때문. 예: eduport/siks scripts/verify.sh).
 
 ### Phase 3: 검증 게이트 (오케스트레이터가 메인 컨텍스트에서 직접 수행 — 서브에이전트 위임 금지)
 
